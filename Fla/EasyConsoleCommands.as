@@ -4,6 +4,8 @@ import Console;
 
 class EasyConsoleCommands extends MovieClip {
 
+    public static var instance;
+
     /* stage elements */
     public var Console_mc:MovieClip;
     public var CommandHistory:TextField;
@@ -20,6 +22,12 @@ class EasyConsoleCommands extends MovieClip {
     private var cachedTextColor:Number;
     private var ssCommandUsed:Boolean; /* whether "ss" command was used, from Skyrim Search */
     private var commandIndex:Number = 0; /* keep track of clicks on the same line */
+
+    private var blockList:Array;
+
+    function EasyConsoleCommands() {
+        EasyConsoleCommands.instance = this;
+    }
 
     function onLoad() {
         var consoleRoot = _parent._parent;
@@ -45,11 +53,41 @@ class EasyConsoleCommands extends MovieClip {
         consoleRoot.ECC_loaded = 1;
         customCommands = new Array();
         skse.SendModEvent( 'ECC_Loaded' );
+
+        blockList = new Array();
+        var loader:LoadVars = new LoadVars();
+        loader.onData = onBlockListLoad;
+        loader.load('Console_Blocklist.txt');
+    }
+
+    function onBlockListLoad(data:String) {
+        this = EasyConsoleCommands.instance;
+        if (data !== undefined && data !== '') {
+            var lines:Array = normalizeNewlines(data).split('\n');
+            for (var i = 0; i < lines.length; i++) {
+                if (lines[i].charAt(0) === '#') continue;
+                blockList.push(lines[i]);
+            }
+        }
+    }
+
+    function isBlocked(command:String) : Boolean {
+        for (var i = 0; i < blockList.length; i++) {
+            if (command.indexOf(blockList[i]) !== -1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function onKeyDownCallback() {
         var sendingCustomCommand = false;
         if ( Key.getCode() == 13 || Key.getCode() == 108 ) {
+            if (blockList.length > 0 && isBlocked(CommandEntry.text)) {
+                Console.AddHistory("This command is blocked and cannot be used.\n");
+                return;
+            }
+
             var parts = CommandEntry.text.split( ' ' );
             var commandName = parts.shift().toLowerCase();
             for ( var i = 0; i < customCommands.length; i++ ) {
@@ -325,5 +363,15 @@ class EasyConsoleCommands extends MovieClip {
         Toggle_mc._x = points.x + (currentSelection._width - Toggle_mc._width);
         Toggle_mc._y = points.y - (currentSelection._height + 100);
         Toggle_mc._visible = true;
+    }
+
+    function normalizeNewlines(s:String):String {
+        s = s.split("\r\n").join("\n");
+
+        while (s.indexOf("\n\n") != -1) {
+            s = s.split("\n\n").join("\n");
+        }
+
+        return s;
     }
 }
