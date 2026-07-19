@@ -186,6 +186,17 @@ Actor* GetActorByName(StaticFunctionTag*, BSFixedString a_name) {
 
 bool FileExists(StaticFunctionTag*, std::string path) { return std::filesystem::exists(path) && std::filesystem::is_regular_file(path); }
 
+std::vector<TESWordOfPower*> GetPlayableWordsOfPower(StaticFunctionTag*) {
+    std::vector<TESWordOfPower*> result;
+    auto all = TESDataHandler::GetSingleton()->GetFormArray<TESWordOfPower>();
+    for (auto word : all) {
+        if (!word->translation.empty()) {
+            result.push_back(word);
+        }
+    }
+    return result;
+}
+
 bool PapyrusBinder(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("SetClipboard", "ECC_Utils", SetClipboard);
     vm->RegisterFunction("GetClipboard", "ECC_Utils", GetClipboard);
@@ -196,6 +207,7 @@ bool PapyrusBinder(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("GetGameLanguage", "ECC_Utils", GetGameLanguage);
     vm->RegisterFunction("GetActorByName", "ECC_Utils", GetActorByName);
     vm->RegisterFunction("FileExists", "ECC_Utils", FileExists);
+    vm->RegisterFunction("GetPlayableWordsOfPower", "ECC_Utils", GetPlayableWordsOfPower);
 
     return false;
 }
